@@ -16,11 +16,13 @@ const DraggableComponent = ({ id, name, color, top }) => {
       ref={drag}
       style={{
         position: "absolute",
-        top: top,
+        top: `${top}px`,
+        left: "0px", // Keep components aligned to the left
         opacity: isDragging ? 0.5 : 1,
         cursor: "move",
         width: "200px",
         backgroundColor: color,
+        transition: "top 0.2s", // Smooth transition for cleaner movement
       }}
     >
       <Card.Body>

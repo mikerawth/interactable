@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useDrop } from "react-dnd";
 import DraggableComponent from "./DraggableComponent";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+
+const gridSize = 50; // Each grid cell is 50px tall
 
 const DroppableArea = () => {
   const [components, setComponents] = useState([
@@ -14,12 +14,25 @@ const DroppableArea = () => {
 
   const moveComponent = (draggedId, newTop) => {
     setComponents((prevComponents) => {
-      const updatedComponents = prevComponents.map((component) => {
-        if (component.id === draggedId) {
-          return { ...component, top: newTop };
+      const updatedComponents = [...prevComponents];
+      const draggedComponent = updatedComponents.find(
+        (comp) => comp.id === draggedId
+      );
+
+      // Snap to grid
+      let snappedTop = Math.round(newTop / gridSize) * gridSize;
+
+      // Shift other components down if necessary
+      updatedComponents.forEach((comp) => {
+        if (comp.id !== draggedComponent.id && comp.top === snappedTop) {
+          comp.top += gridSize;
         }
-        return component;
       });
+
+      // Update dragged component position
+      draggedComponent.top = snappedTop;
+
+      // Sort components by their top position
       return updatedComponents.sort((a, b) => a.top - b.top);
     });
   };
@@ -27,14 +40,18 @@ const DroppableArea = () => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "COMPONENT",
     hover: (item, monitor) => {
-      const draggedId = item.id;
-      const dragIndex = components.findIndex((comp) => comp.id === draggedId);
-      const hoverIndex = Math.floor(monitor.getClientOffset().y / 50);
+      const dragId = item.id;
+      const hoverTop =
+        Math.round(monitor.getClientOffset().y / gridSize) * gridSize;
 
-      if (dragIndex !== hoverIndex) {
-        moveComponent(draggedId, hoverIndex * 50);
-        item.top = hoverIndex * 50;
-      }
+      // Keep the component within the bounds of the DroppableArea
+      const boundedTop = Math.max(
+        0,
+        Math.min(hoverTop, gridSize * (components.length - 1))
+      );
+
+      moveComponent(dragId, boundedTop);
+      item.top = boundedTop;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -46,14 +63,14 @@ const DroppableArea = () => {
       ref={drop}
       className="d-flex flex-column"
       style={{
-        height: "300px",
+        height: `${gridSize * components.length}px`,
         border: "2px dashed gray",
         position: "relative",
         backgroundColor: isOver ? "lightgreen" : "white",
         padding: "20px",
       }}
     >
-      {components.map((component, index) => (
+      {components.map((component) => (
         <DraggableComponent
           key={component.id}
           id={component.id}
